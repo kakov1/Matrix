@@ -15,8 +15,5 @@ int main() {
 
     Matrix::Matrix<double> matrix{size, size, numbers.begin(), numbers.end()};
 
-    Matrix::Matrix<double> matrix1 = matrix.triangular_view_gauss();
-
-    std::cout << matrix;
-    std::cout << matrix1;
+    std::cout << matrix.determinant() << std::endl;
 }

@@ -1,4 +1,5 @@
 #include <utility>
+#include <iostream>
 
 namespace Matrix {
     template <typename T>
@@ -7,14 +8,22 @@ namespace Matrix {
             T* ptr_ = nullptr;
             int size_ = 0;
 
+            void copy_data(const ResourceManager& other) {
+                ptr_ = new T[other.size_];
+                size_ = other.size_;
+
+                for (int i = 0; i < size_; i++) {
+                    ptr_[i] = other.ptr_[i];
+                }
+            }
+
         public:
             ResourceManager() = default;
 
             ResourceManager(int size) : size_(size) { ptr_ = new T[size_]; }
 
             ResourceManager(const ResourceManager& other) {
-                ptr_ = new T[other.size_];
-                size_ = other.size_;
+                copy_data(other);
             }
 
             ResourceManager(ResourceManager&& other) noexcept {
@@ -27,8 +36,7 @@ namespace Matrix {
                     return *this;
                 }
 
-                ptr_ = new T[other.size_];
-                size_ = other.size_;
+                copy_data(other);
 
                 return *this;
             }
@@ -44,7 +52,7 @@ namespace Matrix {
                 return *this;
             }
 
-            ~ResourceManager() { delete [] ptr_; }
+            ~ResourceManager() { delete[] ptr_; }
 
             T& operator[](int index) const { return ptr_[index]; }
     };
