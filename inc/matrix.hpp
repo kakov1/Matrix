@@ -1,3 +1,6 @@
+#pragma once
+
+#include "real_numbers.hpp"
 #include "resource_manager.hpp"
 #include <vector>
 #include <ostream>
@@ -39,19 +42,19 @@ namespace Matrix {
                 }
             }
 
-            Matrix(const Matrix& other) {
+            Matrix(const Matrix<T>& other) {
                 numbers_ = other.numbers_;
                 set_values(other.rows_, other.cols_);
             }
 
-            Matrix(Matrix&& other) {
+            Matrix(Matrix<T>&& other) {
                 std::swap(numbers_, other.numbers_);
                 std::swap(rows_, other.rows_);
                 std::swap(cols_, other.cols_);
                 std::swap(size_, other.size_);
             }
 
-            Matrix& operator=(const Matrix& other) {
+            Matrix<T>& operator=(const Matrix<T>& other) {
                 if (this == &other) {
                     return *this;
                 }
@@ -62,7 +65,7 @@ namespace Matrix {
                 return *this;
             }
 
-            Matrix& operator=(Matrix&& other) {
+            Matrix<T>& operator=(Matrix<T>&& other) {
                 if (this == &other) {
                     return *this;
                 }
@@ -73,6 +76,18 @@ namespace Matrix {
                 std::swap(size_, other.size_);
 
                 return *this;
+            }
+
+            ~Matrix() = default;
+
+            static Matrix<T> eye(int size) {
+                Matrix<T> result{size, size, 0};
+                
+                for (int i = 0; i < size * size; i += (size + 1)) {
+                    result[i] = 1;
+                }
+
+                return result;
             }
 
             int get_rows() const { return rows_; }
@@ -118,8 +133,8 @@ namespace Matrix {
                 }
             }
 
-            Matrix triangular_view_gauss() const {
-                Matrix copy = *this;
+            Matrix<T> triangular_view_gauss() const {
+                Matrix<T> copy = *this;
 
                 for (int i = 0; i < rows_; i++) {
 
@@ -147,7 +162,7 @@ namespace Matrix {
                         "Trace is defined only for square matrix.");
                 }
 
-                Matrix triangle_view = triangular_view_gauss();
+                Matrix<T> triangle_view = triangular_view_gauss();
 
                 return triangle_view.trace();
             }
@@ -159,8 +174,8 @@ namespace Matrix {
 
                 for (int i = 0; i < rows_; i++) {
                     for (int j = 0; j < cols_; j++) {
-                        if (numbers_[i * cols_ + j] !=
-                            other.numbers_[i * cols_ + j]) {
+                        if (!equal_floats(numbers_[i * cols_ + j], 
+                            other.numbers_[i * cols_ + j])) {
                             return false;
                         }
                     }

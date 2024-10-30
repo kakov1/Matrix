@@ -3,8 +3,9 @@
 #include <iostream>
 
 int main() {
-    int size, buf;
-    std::vector<int> numbers;
+    int size;
+    double buf;
+    std::vector<double> numbers;
 
     std::cin >> size;
 
