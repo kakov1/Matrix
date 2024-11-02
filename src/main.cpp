@@ -1,6 +1,7 @@
 #include "matrix.hpp"
 #include <vector>
 #include <iostream>
+#include <iomanip>
 
 int main() {
     int size;
@@ -16,5 +17,5 @@ int main() {
 
     Matrix::Matrix<double> matrix{size, size, numbers.begin(), numbers.end()};
 
-    std::cout << matrix.determinant() << std::endl;
+    std::cout << std::setprecision(15) << matrix.determinant() << std::endl;
 }

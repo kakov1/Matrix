@@ -24,7 +24,7 @@ namespace Matrix {
     template <>
     class Accuracy<float> {
         public:
-            static double epsilon() { return 1e-8; }
+            static double epsilon() { return 1e-5; }
     };
 
     template <typename FloatType>

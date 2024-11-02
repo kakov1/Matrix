@@ -71,8 +71,8 @@ namespace Matrix {
                 }
 
                 std::swap(numbers_, other.numbers_);
-                std::swap(rows_, other.rows);
-                std::swap(cols_, other.cols);
+                std::swap(rows_, other.rows_);
+                std::swap(cols_, other.cols_);
                 std::swap(size_, other.size_);
 
                 return *this;
@@ -159,7 +159,7 @@ namespace Matrix {
             T determinant() const {
                 if (rows_ != cols_) {
                     throw std::runtime_error(
-                        "Trace is defined only for square matrix.");
+                        "Determinant is defined only for square matrix.");
                 }
 
                 Matrix<T> triangle_view = triangular_view_gauss();

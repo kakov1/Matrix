@@ -38,6 +38,7 @@ namespace Matrix {
                     return *this;
                 }
 
+                delete ptr_;
                 copy_data(other);
 
                 return *this;
