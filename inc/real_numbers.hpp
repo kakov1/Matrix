@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
 
 namespace Matrix {
     template <typename FloatType>
@@ -43,7 +44,12 @@ namespace Matrix {
     }
 
     template <typename FloatType>
+    bool is_zero(FloatType a) {
+        return std::fabs(a) < Accuracy<FloatType>::epsilon();
+    }
+
+    template <typename FloatType>
     bool is_int(FloatType a) {
-        return std::fabs(a - int(a)) < Accuracy<long double>::epsilon();
+        return std::fabs(a - std::round(a)) < Accuracy<double>::epsilon();
     }
 }

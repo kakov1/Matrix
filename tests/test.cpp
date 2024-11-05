@@ -111,6 +111,10 @@ TEST(tests, test15) {
     ASSERT_TRUE(Matrix::is_equal_floats(test(15), get_answer(15)));
 }
 
+TEST(tests, test16) {
+    ASSERT_TRUE(Matrix::is_equal_floats(test(16), get_answer(16)));
+}
+
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleMock(&argc, argv);
     return RUN_ALL_TESTS();

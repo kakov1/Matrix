@@ -21,6 +21,13 @@ namespace Matrix {
                 size_ = rows * cols;
             }
 
+            void is_quadratic() const {
+                if (rows_ != cols_) {
+                    throw std::runtime_error(
+                        "Determinant is defined only for square matrix.");
+                }
+            }
+
         public:
             Matrix(int rows, int cols, T value) {
                 set_values(rows, cols);
@@ -42,19 +49,19 @@ namespace Matrix {
                 }
             }
 
-            Matrix(const Matrix<T>& other) {
+            Matrix(const Matrix& other) {
                 numbers_ = other.numbers_;
                 set_values(other.rows_, other.cols_);
             }
 
-            Matrix(Matrix<T>&& other) {
+            Matrix(Matrix&& other) {
                 std::swap(numbers_, other.numbers_);
                 std::swap(rows_, other.rows_);
                 std::swap(cols_, other.cols_);
                 std::swap(size_, other.size_);
             }
 
-            Matrix<T>& operator=(const Matrix<T>& other) {
+            Matrix& operator=(const Matrix& other) {
                 if (this == &other) {
                     return *this;
                 }
@@ -65,7 +72,7 @@ namespace Matrix {
                 return *this;
             }
 
-            Matrix<T>& operator=(Matrix<T>&& other) {
+            Matrix& operator=(Matrix&& other) {
                 if (this == &other) {
                     return *this;
                 }
@@ -82,7 +89,7 @@ namespace Matrix {
 
             static Matrix<T> eye(int size) {
                 Matrix<T> result{size, size, 0};
-                
+
                 for (int i = 0; i < size * size; i += (size + 1)) {
                     result[i] = 1;
                 }
@@ -99,10 +106,7 @@ namespace Matrix {
             const ResourceManager<T>& get_numbers() const { return numbers_; }
 
             T trace() const {
-                if (rows_ != cols_) {
-                    throw std::runtime_error(
-                        "Trace is defined only for square matrix.");
-                }
+                is_quadratic();
 
                 T result = 1;
 
@@ -111,12 +115,6 @@ namespace Matrix {
                 }
 
                 return result;
-            }
-
-            void multiple_number_string(T number, int string_number) {
-                for (int i = 0; i < cols_; i++) {
-                    numbers_[string_number * cols_ + i] *= number;
-                }
             }
 
             void swap_strings(int string1, int string2) {
@@ -133,16 +131,34 @@ namespace Matrix {
                 }
             }
 
+            void mul_row(int string, T number) {
+                for (int i = 0; i < cols_; i++) {
+                    numbers_[string * cols_ + i] *= number;
+                }
+            }
+
             Matrix<T> triangular_view_gauss() const {
-                Matrix<T> copy = *this;
+                is_quadratic();
+
+                Matrix<T> copy(*this);
 
                 for (int i = 0; i < rows_; i++) {
 
                     for (int j = i + 1; j < rows_; j++) {
 
-                        while (copy[i * cols_ + i] == 0) {
-                            if (i != rows_)
-                                copy.swap_strings(i, i + 1);
+                        if (is_zero(copy[i * cols_ + i])) {
+
+                            int swap_num = i + 1;
+                            while (copy[swap_num * cols_ + i] == 0) {
+                                if (swap_num == rows_) {
+                                    return Matrix<T>(rows_, cols_, 0);
+                                }
+
+                                swap_num++;
+                            }
+
+                            copy.swap_strings(i, swap_num);
+                            copy.mul_row(swap_num, -1);
                         }
 
                         T coeff = copy[j * cols_ + i] / copy[i * cols_ + i];
@@ -157,14 +173,17 @@ namespace Matrix {
             }
 
             T determinant() const {
-                if (rows_ != cols_) {
-                    throw std::runtime_error(
-                        "Determinant is defined only for square matrix.");
-                }
+                is_quadratic();
 
                 Matrix<T> triangle_view = triangular_view_gauss();
 
-                return triangle_view.trace();
+                T result = triangle_view.trace();
+
+                if (is_int(result)) {
+                    return std::round(result);
+                }
+
+                return result;
             }
 
             bool operator==(const Matrix& other) const {
@@ -174,8 +193,8 @@ namespace Matrix {
 
                 for (int i = 0; i < rows_; i++) {
                     for (int j = 0; j < cols_; j++) {
-                        if (!equal_floats(numbers_[i * cols_ + j], 
-                            other.numbers_[i * cols_ + j])) {
+                        if (!equal_floats(numbers_[i * cols_ + j],
+                                          other.numbers_[i * cols_ + j])) {
                             return false;
                         }
                     }
