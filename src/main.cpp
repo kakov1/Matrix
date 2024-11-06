@@ -5,8 +5,8 @@
 
 int main() {
     int size;
-    long double buf;
-    std::vector<long double> numbers;
+    double buf;
+    std::vector<double> numbers;
 
     std::cin >> size;
 
@@ -15,7 +15,7 @@ int main() {
         numbers.push_back(buf);
     }
 
-    Matrix::Matrix<long double> matrix{size, size, numbers.begin(), numbers.end()};
+    Matrix::Matrix<double> matrix{size, size, numbers.begin(), numbers.end()};
 
     std::cout << std::setprecision(25) << matrix.determinant() << std::endl;
 }

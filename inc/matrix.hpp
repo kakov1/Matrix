@@ -28,6 +28,15 @@ namespace Matrix {
                 }
             }
 
+            bool are_elems_int() const {
+                for (int i = 0; i < size_; i++) {
+                    if (!is_int(numbers_[i]))
+                        return false;
+                }
+
+                return true;
+            }
+
         public:
             Matrix(int rows, int cols, T value) {
                 set_values(rows, cols);
@@ -52,6 +61,12 @@ namespace Matrix {
             Matrix(const Matrix& other) {
                 numbers_ = other.numbers_;
                 set_values(other.rows_, other.cols_);
+            }
+
+            template <typename U>
+            Matrix(const Matrix<U>& other) {
+                numbers_ = other.get_numbers();
+                set_values(other.get_rows(), other.get_cols());
             }
 
             Matrix(Matrix&& other) {
@@ -137,10 +152,15 @@ namespace Matrix {
                 }
             }
 
-            Matrix<T> triangular_view_gauss() const {
-                is_quadratic();
+            void div_row(int string, T number) {
+                for (int i = 0; i < cols_; i++) {
+                    numbers_[string * cols_ + i] /= number;
+                }
+            }
 
-                Matrix<T> copy(*this);
+            int triangular_view_gauss(Matrix<double>& copy) const {
+                is_quadratic();
+                int sign = 1;
 
                 for (int i = 0; i < rows_; i++) {
 
@@ -149,19 +169,20 @@ namespace Matrix {
                         if (is_zero(copy[i * cols_ + i])) {
 
                             int swap_num = i + 1;
-                            while (copy[swap_num * cols_ + i] == 0) {
+                            while (is_zero(copy[swap_num * cols_ + i])) {
                                 if (swap_num == rows_) {
-                                    return Matrix<T>(rows_, cols_, 0);
+                                    return 0;
                                 }
 
                                 swap_num++;
                             }
 
                             copy.swap_strings(i, swap_num);
-                            copy.mul_row(swap_num, -1);
+                            sign *= -1;
                         }
 
-                        T coeff = copy[j * cols_ + i] / copy[i * cols_ + i];
+                        double coeff =
+                            copy[j * cols_ + i] / copy[i * cols_ + i];
 
                         for (int k = 0; k < cols_; k++) {
                             copy[j * cols_ + k] -= copy[i * cols_ + k] * coeff;
@@ -169,15 +190,16 @@ namespace Matrix {
                     }
                 }
 
-                return copy;
+                return sign;
             }
 
-            T determinant() const {
+            double determinant() const {
                 is_quadratic();
 
-                Matrix<T> triangle_view = triangular_view_gauss();
+                Matrix<double> triangle_view{*this};
+                int sign = triangular_view_gauss(triangle_view);
 
-                T result = triangle_view.trace();
+                double result = sign * triangle_view.trace();
 
                 if (is_int(result)) {
                     return std::round(result);
@@ -193,8 +215,8 @@ namespace Matrix {
 
                 for (int i = 0; i < rows_; i++) {
                     for (int j = 0; j < cols_; j++) {
-                        if (!equal_floats(numbers_[i * cols_ + j],
-                                          other.numbers_[i * cols_ + j])) {
+                        if (!is_equal_floats(numbers_[i * cols_ + j],
+                                             other.numbers_[i * cols_ + j])) {
                             return false;
                         }
                     }

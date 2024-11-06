@@ -10,12 +10,14 @@ namespace Matrix {
             T* ptr_ = nullptr;
             int size_ = 0;
 
-            void copy_data(const ResourceManager& other) {
-                ptr_ = new T[other.size_];
-                size_ = other.size_;
+            template <typename U>
+            void copy_data(const ResourceManager<U>& other) {
+                size_ = other.get_size();
+                ptr_ = new T[size_];
+                U* other_ptr = other.get_ptr();
 
                 for (int i = 0; i < size_; i++) {
-                    ptr_[i] = other.ptr_[i];
+                    ptr_[i] = static_cast<T>(other_ptr[i]);
                 }
             }
 
@@ -24,9 +26,7 @@ namespace Matrix {
 
             ResourceManager(int size) : size_(size) { ptr_ = new T[size_]; }
 
-            ResourceManager(const ResourceManager& other) {
-                copy_data(other);
-            }
+            ResourceManager(const ResourceManager& other) { copy_data<T>(other); }
 
             ResourceManager(ResourceManager&& other) noexcept {
                 std::swap(ptr_, other.ptr_);
@@ -40,6 +40,15 @@ namespace Matrix {
 
                 delete ptr_;
                 copy_data(other);
+
+                return *this;
+            }
+
+            template <typename U>
+            ResourceManager& operator=(const ResourceManager<U>& other) {
+
+                delete ptr_;
+                copy_data<U>(other);
 
                 return *this;
             }
@@ -58,5 +67,9 @@ namespace Matrix {
             ~ResourceManager() { delete[] ptr_; }
 
             T& operator[](int index) const { return ptr_[index]; }
+
+            int get_size() const { return size_; }
+
+            T* get_ptr() const { return ptr_; }
     };
 }
