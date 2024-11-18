@@ -21,12 +21,24 @@ namespace Matrix {
                 }
             }
 
+            void swap(ResourceManager& other) noexcept {
+                std::swap(ptr_, other.ptr_);
+                std::swap(size_, other.size_);
+            }
+
         public:
             ResourceManager() = default;
 
             ResourceManager(int size) : size_(size) { ptr_ = new T[size_]; }
 
-            ResourceManager(const ResourceManager& other) { copy_data<T>(other); }
+            ResourceManager(const ResourceManager& other) {
+                copy_data<T>(other);
+            }
+
+            template <typename U>
+            ResourceManager(const ResourceManager<U>& other) {
+                copy_data<U>(other);
+            }
 
             ResourceManager(ResourceManager&& other) noexcept {
                 std::swap(ptr_, other.ptr_);
@@ -34,32 +46,24 @@ namespace Matrix {
             }
 
             ResourceManager& operator=(const ResourceManager& other) {
-                if (this == &other) {
-                    return *this;
+                if (this != &other) {
+                    ResourceManager<T> tmp{other};
+                    tmp.swap(*this);
                 }
-
-                delete ptr_;
-                copy_data(other);
 
                 return *this;
             }
 
             template <typename U>
             ResourceManager& operator=(const ResourceManager<U>& other) {
-
-                delete ptr_;
-                copy_data<U>(other);
+                ResourceManager<T> tmp{other};
+                tmp.swap(*this);
 
                 return *this;
             }
 
             ResourceManager& operator=(ResourceManager&& other) noexcept {
-                if (this == &other) {
-                    return *this;
-                }
-
-                std::swap(ptr_, other.ptr_);
-                std::swap(size_, other.size_);
+                swap(other);
 
                 return *this;
             }

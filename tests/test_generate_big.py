@@ -8,7 +8,7 @@ test_number_stop = int(input("Input stop test number:\n"))
 size = int(input("Input matrix size:\n"))
 
 for i in range(test_number_start, test_number_stop + 1):
-    numbers = [randint(1, 20) for _ in range(size)]
+    numbers = [randint(1, 5) for _ in range(size)]
 
     check = []
     for _ in range(size - 10):
@@ -26,7 +26,7 @@ for i in range(test_number_start, test_number_stop + 1):
             if k == j:
                 matrix_[k][j] =  numbers[k]
             elif j > k:
-                matrix_[k][j] = randint(0, 100)
+                matrix_[k][j] = randint(0, 10)
 
     for _ in range(size):
         num1 = randint(0, size - 1)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <type_traits>
 #include <iostream>
 
 namespace Matrix {
@@ -28,14 +29,26 @@ namespace Matrix {
             static double epsilon() { return 1e-5; }
     };
 
+    template <>
+    class Accuracy<int> {
+        public:
+            static double epsilon() { return 0; }
+    };
+
     template <typename FloatType>
     bool is_equal_floats(FloatType a, FloatType b) {
-        return std::fabs(a - b) < Accuracy<FloatType>::epsilon();
+        if (std::is_integral_v<FloatType>)
+            return a == b;
+        else
+            return std::fabs(a - b) < Accuracy<FloatType>::epsilon();
     }
 
     template <typename FloatType>
     bool is_less(FloatType a, FloatType b) {
-        return a - b < -Accuracy<FloatType>::epsilon();
+        if (std::is_integral_v<FloatType>)
+            return a < b;
+        else
+            return a - b < -Accuracy<FloatType>::epsilon();
     }
 
     template <typename FloatType>
@@ -45,11 +58,9 @@ namespace Matrix {
 
     template <typename FloatType>
     bool is_zero(FloatType a) {
-        return std::fabs(a) < Accuracy<FloatType>::epsilon();
-    }
-
-    template <typename FloatType>
-    bool is_int(FloatType a) {
-        return std::fabs(a - std::round(a)) < Accuracy<double>::epsilon();
+        if (std::is_integral_v<FloatType>)
+            return a == 0;
+        else
+            return std::fabs(a) < Accuracy<FloatType>::epsilon();
     }
 }

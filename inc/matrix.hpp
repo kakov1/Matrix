@@ -7,6 +7,7 @@
 #include <istream>
 #include <iostream>
 #include <stdexcept>
+#include <cassert>
 
 namespace Matrix {
     template <typename T>
@@ -21,6 +22,83 @@ namespace Matrix {
                 size_ = rows * cols;
             }
 
+            int partial_pivoting(Matrix<T>& copy, int col) const {
+                int pivot = col;
+
+                for (int i = col + 1; i < rows_; ++i) {
+                    if (is_less(std::fabs(copy[pivot * rows_ + col]),
+                                std::fabs(copy[i * rows_ + col]))) {
+                        pivot = i;
+                    }
+                }
+
+                copy.swap_strings(pivot, col);
+
+                if (pivot != col) {
+                    return -1;
+                }
+
+                return 1;
+            }
+
+            T triangular_view_bareiss() const {
+                Matrix<T> copy{*this};
+                int sign = 1;
+                T prev = 1;
+
+                for (int i = 0; i < rows_ - 1; ++i) {
+
+                    if (is_zero(copy[i * cols_ + i])) {
+                        sign *= partial_pivoting(copy, i);
+                        if (is_zero(copy[i * cols_ + i])) {
+                            return 0;
+                        }
+                    }
+
+                    for (int j = i + 1; j < rows_; ++j) {
+
+                        for (int k = i + 1; k < rows_; ++k) {
+                            T numerator =
+                                (copy[j * cols_ + k]) * (copy[i * cols_ + i]) -
+                                (copy[j * cols_ + i]) * (copy[i * cols_ + k]);
+
+                            copy[j * cols_ + k] = numerator / prev;
+                        }
+
+                        copy[j * cols_ + i] = 0;
+                    }
+
+                    prev = copy[i * cols_ + i];
+                }
+
+                return sign * copy[rows_ * rows_ - 1];
+            }
+
+            T triangular_view_gauss() const {
+                Matrix<T> copy{*this};
+                int sign = 1;
+
+                for (int i = 0; i < rows_; i++) {
+
+                    sign *= partial_pivoting(copy, i);
+
+                    if (is_zero(copy[i * rows_ + i])) {
+                        return 0;
+                    }
+
+                    for (int j = i + 1; j < rows_; j++) {
+
+                        T coeff = copy[j * cols_ + i] / copy[i * cols_ + i];
+
+                        for (int k = 0; k < cols_; k++) {
+                            copy[j * cols_ + k] -= copy[i * cols_ + k] * coeff;
+                        }
+                    }
+                }
+
+                return sign * copy.trace();
+            }
+
             void is_quadratic() const {
                 if (rows_ != cols_) {
                     throw std::runtime_error(
@@ -28,16 +106,15 @@ namespace Matrix {
                 }
             }
 
-            bool are_elems_int() const {
-                for (int i = 0; i < size_; i++) {
-                    if (!is_int(numbers_[i]))
-                        return false;
+            void is_string_in_matrix(int string) const {
+                if (string < 0 || string >= rows_) {
+                    throw std::out_of_range("String index out of range.");
                 }
-
-                return true;
             }
 
         public:
+            Matrix() = default;
+
             Matrix(int rows, int cols, T value) {
                 set_values(rows, cols);
                 numbers_ = ResourceManager<T>{size_};
@@ -58,49 +135,11 @@ namespace Matrix {
                 }
             }
 
-            Matrix(const Matrix& other) {
-                numbers_ = other.numbers_;
-                set_values(other.rows_, other.cols_);
-            }
-
             template <typename U>
             Matrix(const Matrix<U>& other) {
                 numbers_ = other.get_numbers();
                 set_values(other.get_rows(), other.get_cols());
             }
-
-            Matrix(Matrix&& other) {
-                std::swap(numbers_, other.numbers_);
-                std::swap(rows_, other.rows_);
-                std::swap(cols_, other.cols_);
-                std::swap(size_, other.size_);
-            }
-
-            Matrix& operator=(const Matrix& other) {
-                if (this == &other) {
-                    return *this;
-                }
-
-                numbers_ = other.numbers_;
-                set_values(other.rows_, other.cols_);
-
-                return *this;
-            }
-
-            Matrix& operator=(Matrix&& other) {
-                if (this == &other) {
-                    return *this;
-                }
-
-                std::swap(numbers_, other.numbers_);
-                std::swap(rows_, other.rows_);
-                std::swap(cols_, other.cols_);
-                std::swap(size_, other.size_);
-
-                return *this;
-            }
-
-            ~Matrix() = default;
 
             static Matrix<T> eye(int size) {
                 Matrix<T> result{size, size, 0};
@@ -133,6 +172,12 @@ namespace Matrix {
             }
 
             void swap_strings(int string1, int string2) {
+                is_string_in_matrix(string1);
+                is_string_in_matrix(string2);
+
+                if (string1 == string2)
+                    return;
+
                 T copy[cols_];
 
                 for (int i = 0; i < cols_; i++) {
@@ -147,68 +192,32 @@ namespace Matrix {
             }
 
             void mul_row(int string, T number) {
+                is_string_in_matrix(string);
+
                 for (int i = 0; i < cols_; i++) {
                     numbers_[string * cols_ + i] *= number;
                 }
             }
 
             void div_row(int string, T number) {
+                is_string_in_matrix(string);
+
                 for (int i = 0; i < cols_; i++) {
                     numbers_[string * cols_ + i] /= number;
                 }
             }
 
-            int triangular_view_gauss(Matrix<double>& copy) const {
-                is_quadratic();
-                int sign = 1;
-
-                for (int i = 0; i < rows_; i++) {
-
-                    for (int j = i + 1; j < rows_; j++) {
-
-                        if (is_zero(copy[i * cols_ + i])) {
-
-                            int swap_num = i + 1;
-                            while (is_zero(copy[swap_num * cols_ + i])) {
-                                if (swap_num == rows_) {
-                                    return 0;
-                                }
-
-                                swap_num++;
-                            }
-
-                            copy.swap_strings(i, swap_num);
-                            sign *= -1;
-                        }
-
-                        double coeff =
-                            copy[j * cols_ + i] / copy[i * cols_ + i];
-
-                        for (int k = 0; k < cols_; k++) {
-                            copy[j * cols_ + k] -= copy[i * cols_ + k] * coeff;
-                        }
-                    }
-                }
-
-                return sign;
-            }
-
-            double determinant() const {
+            T determinant() const {
                 is_quadratic();
 
-                Matrix<double> triangle_view{*this};
-                int sign = triangular_view_gauss(triangle_view);
-
-                double result = sign * triangle_view.trace();
-
-                if (is_int(result)) {
-                    return std::round(result);
+                if (std::is_integral_v<T>) {
+                    return triangular_view_bareiss();
                 }
 
-                return result;
+                return triangular_view_gauss();
             }
 
-            bool operator==(const Matrix& other) const {
+            bool is_equal(const Matrix& other) const {
                 if (rows_ != other.rows_ || cols_ != other.cols_) {
                     return false;
                 }
@@ -239,5 +248,10 @@ namespace Matrix {
         }
 
         return stream;
+    }
+
+    template <typename T>
+    bool operator==(const Matrix<T>& matrix1, const Matrix<T>& matrix2) {
+        return matrix1.is_equal(matrix2);
     }
 }

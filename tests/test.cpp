@@ -10,6 +10,20 @@
 
 const int OPEN_ERROR = -1;
 
+class TestMatrix : public testing::Test {
+    protected:
+        Matrix::Matrix<int> mtrx;
+        std::vector<int> buf;
+
+        TestMatrix() {
+            for (int i = 1; i < 10; i++) {
+                buf.push_back(i);
+            }
+
+            mtrx = Matrix::Matrix<int>{3, 3, buf.begin(), buf.end()};
+        }
+};
+
 double get_answer(int test_number) {
     double answer;
 
@@ -51,6 +65,43 @@ double test(int test_number) {
                                      numbers.end()};
 
     return matrix.determinant();
+}
+
+TEST_F(TestMatrix, TestConstructors) {
+    Matrix::Matrix<int> mtrx_copy1 = mtrx;
+    Matrix::Matrix<int> mtrx_copy2;
+    Matrix::Matrix<int> mtrx2{100, 100, 1};
+
+    mtrx = mtrx;
+    mtrx = std::move(mtrx);
+
+    ASSERT_TRUE(mtrx == mtrx_copy1);
+    ASSERT_FALSE(mtrx == mtrx_copy2);
+    ASSERT_FALSE(mtrx == mtrx2);
+
+    Matrix::Matrix<int> mtrx_copy4 = std::move(mtrx_copy1);
+    Matrix::Matrix<int> mtrx_copy5 = std::move(mtrx2);
+
+    ASSERT_TRUE(mtrx == mtrx_copy4);
+    ASSERT_FALSE(mtrx == mtrx_copy5);
+}
+
+TEST_F(TestMatrix, TestAssign) {
+    Matrix::Matrix<int> mtrx_copy1;
+    Matrix::Matrix<int> mtrx2{50, 50, 2};
+    Matrix::Matrix<int> mtrx_copy2;
+
+    mtrx_copy1 = mtrx;
+    mtrx_copy2 = mtrx2;
+
+    ASSERT_TRUE(mtrx == mtrx_copy1);
+    ASSERT_FALSE(mtrx == mtrx_copy2);
+
+    Matrix::Matrix<int> mtrx_copy3 = std::move(mtrx_copy1);
+    Matrix::Matrix<int> mtrx_copy4 = std::move(mtrx_copy2);
+
+    ASSERT_TRUE(mtrx == mtrx_copy3);
+    ASSERT_FALSE(mtrx == mtrx_copy4);
 }
 
 TEST(tests, test1) {
