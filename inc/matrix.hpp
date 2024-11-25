@@ -4,14 +4,12 @@
 #include "resource_manager.hpp"
 #include <vector>
 #include <ostream>
-#include <istream>
 #include <iostream>
 #include <stdexcept>
-#include <cassert>
 
 namespace Matrix {
     template <typename T>
-    class Matrix {
+    class Matrix final {
         private:
             int rows_ = 0, cols_ = 0, size_ = 0;
             ResourceManager<T> numbers_;
@@ -112,10 +110,26 @@ namespace Matrix {
                 }
             }
 
+            void is_correct_size(int rows, int cols) const {
+                if (rows <= 0 || cols <= 0) {
+                    throw std::invalid_argument("Incorrect size.");
+                }
+            }
+
+            template <typename It>
+            void is_correct_matrix(It start, It fin) const {
+                if (std::distance(start, fin) < size_) {
+                    throw std::invalid_argument(
+                        "Incorrect size for given matrix.");
+                }
+            }
+
         public:
             Matrix() = default;
 
             Matrix(int rows, int cols, T value) {
+                is_correct_size(rows, cols);
+
                 set_values(rows, cols);
                 numbers_ = ResourceManager<T>{size_};
 
@@ -125,7 +139,10 @@ namespace Matrix {
             }
 
             template <typename It>
-            Matrix(int rows, int cols, It start, It final) {
+            Matrix(int rows, int cols, It start, It fin) {
+                is_correct_size(rows, cols);
+                is_correct_matrix(start, fin);
+
                 set_values(rows, cols);
                 numbers_ = ResourceManager<T>{size_};
 
@@ -142,6 +159,8 @@ namespace Matrix {
             }
 
             static Matrix<T> eye(int size) {
+                is_correct_size(size, size);
+
                 Matrix<T> result{size, size, 0};
 
                 for (int i = 0; i < size * size; i += (size + 1)) {
@@ -178,16 +197,9 @@ namespace Matrix {
                 if (string1 == string2)
                     return;
 
-                T copy[cols_];
-
                 for (int i = 0; i < cols_; i++) {
-                    copy[i] = numbers_[string1 * rows_ + i];
-                    numbers_[string1 * rows_ + i] =
-                        numbers_[string2 * rows_ + i];
-                }
-
-                for (int i = 0; i < cols_; i++) {
-                    numbers_[string2 * rows_ + i] = copy[i];
+                    std::swap(numbers_[string1 * rows_ + i],
+                              numbers_[string2 * rows_ + i]);
                 }
             }
 
@@ -210,7 +222,7 @@ namespace Matrix {
             T determinant() const {
                 is_quadratic();
 
-                if (std::is_integral_v<T>) {
+                if constexpr (std::is_integral_v<T>) {
                     return triangular_view_bareiss();
                 }
 
@@ -234,7 +246,8 @@ namespace Matrix {
                 return true;
             }
 
-            T& operator[](int index) const { return numbers_[index]; }
+            T& operator[](int index) { return numbers_[index]; }
+            const T& operator[](int index) const { return numbers_[index]; }
     };
 
     template <typename T>

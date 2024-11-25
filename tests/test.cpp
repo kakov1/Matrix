@@ -3,12 +3,8 @@
 #include <fstream>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <list>
 #include <string>
 #include <vector>
-#include <iomanip>
-
-const int OPEN_ERROR = -1;
 
 class TestMatrix : public testing::Test {
     protected:
@@ -27,12 +23,10 @@ class TestMatrix : public testing::Test {
 double get_answer(int test_number) {
     double answer;
 
-    std::fstream answer_file("../../tests/tests/" +
-                             std::to_string(test_number) + "answer.txt");
+    std::ifstream answer_file("../../tests/tests/" +
+                              std::to_string(test_number) + "answer.txt");
 
-    if (answer_file.fail()) {
-        throw OPEN_ERROR;
-    }
+    answer_file.exceptions(std::ifstream::failbit);
 
     answer_file >> answer;
 
@@ -41,23 +35,19 @@ double get_answer(int test_number) {
 
 template <typename FloatType>
 double test(int test_number) {
-    std::fstream test_file("../../tests/tests/" + std::to_string(test_number) +
-                           "test.txt");
+    std::ifstream test_file("../../tests/tests/" +
+                            std::to_string(test_number) + "test.txt");
 
-    if (test_file.fail()) {
-        throw OPEN_ERROR;
-    }
-
-    std::cin.rdbuf(test_file.rdbuf());
+    test_file.exceptions(std::ifstream::failbit);
 
     int size;
     FloatType buf;
     std::vector<FloatType> numbers;
 
-    std::cin >> size;
+    test_file >> size;
 
     for (int i = 0; i < size * size; i++) {
-        std::cin >> buf;
+        test_file >> buf;
         numbers.push_back(buf);
     }
 

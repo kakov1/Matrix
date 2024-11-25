@@ -5,7 +5,7 @@
 
 namespace Matrix {
     template <typename T>
-    class ResourceManager {
+    class ResourceManager final {
         private:
             T* ptr_ = nullptr;
             int size_ = 0;
@@ -41,8 +41,7 @@ namespace Matrix {
             }
 
             ResourceManager(ResourceManager&& other) noexcept {
-                std::swap(ptr_, other.ptr_);
-                std::swap(size_, other.size_);
+                swap(other);
             }
 
             ResourceManager& operator=(const ResourceManager& other) {
@@ -70,7 +69,8 @@ namespace Matrix {
 
             ~ResourceManager() { delete[] ptr_; }
 
-            T& operator[](int index) const { return ptr_[index]; }
+            T& operator[](int index) { return ptr_[index]; }
+            const T& operator[](int index) const { return ptr_[index]; }
 
             int get_size() const { return size_; }
 
