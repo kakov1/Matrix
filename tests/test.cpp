@@ -5,62 +5,79 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
+#include <cstddef>
 
-class TestMatrix : public testing::Test {
+using hwm::Matrix;
+
+template <typename T>
+class EteTests : public testing::Test {
     protected:
-        Matrix::Matrix<int> mtrx;
+        Matrix<T>* mtrx_{};
+
+        const Matrix<T>* create_mtrx(std::size_t test_number) {
+            delete mtrx_;
+
+            std::ifstream test_file("../../tests/tests/" +
+                                    std::to_string(test_number) + "test.txt");
+
+            test_file.exceptions(std::ifstream::failbit);
+
+            int size;
+            T buf;
+            std::vector<T> numbers;
+
+            test_file >> size;
+
+            for (int i = 0; i < size * size; i++) {
+                test_file >> buf;
+                numbers.push_back(buf);
+            }
+
+            return new Matrix<T>{size, size, numbers.begin(), numbers.end()};
+        }
+
+        T get_answer(int test_number) {
+            T answer;
+
+            std::ifstream answer_file("../../tests/tests/" +
+                                      std::to_string(test_number) +
+                                      "answer.txt");
+
+            answer_file.exceptions(std::ifstream::failbit);
+
+            answer_file >> answer;
+
+            return answer;
+        }
+};
+
+template <typename T>
+class EteTestsFloats : public EteTests<T> {};
+
+using all_types = ::testing::Types<int, long, double, float>;
+using float_types = ::testing::Types<double>;
+
+TYPED_TEST_SUITE(EteTests, all_types);
+TYPED_TEST_SUITE(EteTestsFloats, float_types);
+
+class InterfaceTests : public testing::Test {
+    protected:
+        Matrix<int> mtrx;
         std::vector<int> buf;
 
-        TestMatrix() {
+        InterfaceTests() {
             for (int i = 1; i < 10; i++) {
                 buf.push_back(i);
             }
 
-            mtrx = Matrix::Matrix<int>{3, 3, buf.begin(), buf.end()};
+            mtrx = Matrix<int>{3, 3, buf.begin(), buf.end()};
         }
 };
 
-double get_answer(int test_number) {
-    double answer;
-
-    std::ifstream answer_file("../../tests/tests/" +
-                              std::to_string(test_number) + "answer.txt");
-
-    answer_file.exceptions(std::ifstream::failbit);
-
-    answer_file >> answer;
-
-    return answer;
-}
-
-template <typename FloatType>
-double test(int test_number) {
-    std::ifstream test_file("../../tests/tests/" +
-                            std::to_string(test_number) + "test.txt");
-
-    test_file.exceptions(std::ifstream::failbit);
-
-    int size;
-    FloatType buf;
-    std::vector<FloatType> numbers;
-
-    test_file >> size;
-
-    for (int i = 0; i < size * size; i++) {
-        test_file >> buf;
-        numbers.push_back(buf);
-    }
-
-    Matrix::Matrix<FloatType> matrix{size, size, numbers.begin(),
-                                     numbers.end()};
-
-    return matrix.determinant();
-}
-
-TEST_F(TestMatrix, TestConstructors) {
-    Matrix::Matrix<int> mtrx_copy1 = mtrx;
-    Matrix::Matrix<int> mtrx_copy2;
-    Matrix::Matrix<int> mtrx2{100, 100, 1};
+TEST_F(InterfaceTests, TestConstructors) {
+    Matrix<int> mtrx_copy1 = mtrx;
+    Matrix<int> mtrx_copy2;
+    Matrix<int> mtrx2{100, 100, 1};
 
     mtrx = mtrx;
     mtrx = std::move(mtrx);
@@ -69,17 +86,17 @@ TEST_F(TestMatrix, TestConstructors) {
     ASSERT_FALSE(mtrx == mtrx_copy2);
     ASSERT_FALSE(mtrx == mtrx2);
 
-    Matrix::Matrix<int> mtrx_copy4 = std::move(mtrx_copy1);
-    Matrix::Matrix<int> mtrx_copy5 = std::move(mtrx2);
+    Matrix<int> mtrx_copy4 = std::move(mtrx_copy1);
+    Matrix<int> mtrx_copy5 = std::move(mtrx2);
 
     ASSERT_TRUE(mtrx == mtrx_copy4);
     ASSERT_FALSE(mtrx == mtrx_copy5);
 }
 
-TEST_F(TestMatrix, TestAssign) {
-    Matrix::Matrix<int> mtrx_copy1;
-    Matrix::Matrix<int> mtrx2{50, 50, 2};
-    Matrix::Matrix<int> mtrx_copy2;
+TEST_F(InterfaceTests, TestAssign) {
+    Matrix<int> mtrx_copy1;
+    Matrix<int> mtrx2{50, 50, 2};
+    Matrix<int> mtrx_copy2;
 
     mtrx_copy1 = mtrx;
     mtrx_copy2 = mtrx2;
@@ -87,91 +104,23 @@ TEST_F(TestMatrix, TestAssign) {
     ASSERT_TRUE(mtrx == mtrx_copy1);
     ASSERT_FALSE(mtrx == mtrx_copy2);
 
-    Matrix::Matrix<int> mtrx_copy3 = std::move(mtrx_copy1);
-    Matrix::Matrix<int> mtrx_copy4 = std::move(mtrx_copy2);
+    Matrix<int> mtrx_copy3 = std::move(mtrx_copy1);
+    Matrix<int> mtrx_copy4 = std::move(mtrx_copy2);
 
     ASSERT_TRUE(mtrx == mtrx_copy3);
     ASSERT_FALSE(mtrx == mtrx_copy4);
 }
 
-TEST(tests, test1) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(1), get_answer(1)));
+TYPED_TEST(EteTestsFloats, test_float_types) {
+    for (int i = 14; i <= 20; ++i)
+        ASSERT_TRUE(hwm::is_equal_floats(this->create_mtrx(i)->determinant(),
+                                         this->get_answer(i)));
 }
 
-TEST(tests, test2) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(2), get_answer(2)));
-}
-
-TEST(tests, test3) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(3), get_answer(3)));
-}
-
-TEST(tests, test4) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(4), get_answer(4)));
-}
-
-TEST(tests, test5) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(5), get_answer(5)));
-}
-
-TEST(tests, test6) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(6), get_answer(6)));
-}
-
-TEST(tests, test7) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(7), get_answer(7)));
-}
-
-TEST(tests, test8) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(8), get_answer(8)));
-}
-
-TEST(tests, test9) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(9), get_answer(9)));
-}
-
-TEST(tests, test10) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(10), get_answer(10)));
-}
-
-TEST(tests, test11) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(11), get_answer(11)));
-}
-
-TEST(tests, test12) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(12), get_answer(12)));
-}
-
-TEST(tests, test13) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(13), get_answer(13)));
-}
-
-TEST(tests, test14) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(14), get_answer(14)));
-}
-
-TEST(tests, test15) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<double>(15), get_answer(15)));
-}
-
-TEST(tests, test16) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(16), get_answer(16)));
-}
-
-TEST(tests, test17) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(17), get_answer(17)));
-}
-
-TEST(tests, test18) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(18), get_answer(18)));
-}
-
-TEST(tests, test19) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(19), get_answer(19)));
-}
-
-TEST(tests, test20) {
-    ASSERT_TRUE(Matrix::is_equal_floats(test<int>(20), get_answer(20)));
+TYPED_TEST(EteTests, test_all_types) {
+    for (int i = 1; i <= 13; ++i)
+        ASSERT_TRUE(hwm::is_equal_floats(this->create_mtrx(i)->determinant(),
+                                         this->get_answer(i)));
 }
 
 int main(int argc, char* argv[]) {

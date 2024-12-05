@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 
-namespace Matrix {
+namespace hwm {
     template <typename T>
     class Matrix final {
         private:

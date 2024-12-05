@@ -3,7 +3,7 @@
 #include <utility>
 #include <iostream>
 
-namespace Matrix {
+namespace hwm {
     template <typename T>
     class ResourceManager final {
         private:
