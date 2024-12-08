@@ -12,11 +12,7 @@ using hwm::Matrix;
 template <typename T>
 class EteTests : public testing::Test {
     protected:
-        Matrix<T>* mtrx_{};
-
-        const Matrix<T>* create_mtrx(std::size_t test_number) {
-            delete mtrx_;
-
+        T test(std::size_t test_number) {
             std::ifstream test_file("../../tests/tests/" +
                                     std::to_string(test_number) + "test.txt");
 
@@ -33,7 +29,9 @@ class EteTests : public testing::Test {
                 numbers.push_back(buf);
             }
 
-            return new Matrix<T>{size, size, numbers.begin(), numbers.end()};
+            Matrix<T> mtrx{size, size, numbers.begin(), numbers.end()};
+
+            return mtrx.determinant();
         }
 
         T get_answer(int test_number) {
@@ -113,13 +111,13 @@ TEST_F(InterfaceTests, TestAssign) {
 
 TYPED_TEST(EteTestsFloats, test_float_types) {
     for (int i = 14; i <= 20; ++i)
-        ASSERT_TRUE(hwm::is_equal_floats(this->create_mtrx(i)->determinant(),
+        ASSERT_TRUE(hwm::is_equal_floats(this->test(i),
                                          this->get_answer(i)));
 }
 
 TYPED_TEST(EteTests, test_all_types) {
     for (int i = 1; i <= 13; ++i)
-        ASSERT_TRUE(hwm::is_equal_floats(this->create_mtrx(i)->determinant(),
+        ASSERT_TRUE(hwm::is_equal_floats(this->test(i),
                                          this->get_answer(i)));
 }
 

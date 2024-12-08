@@ -1,124 +1,68 @@
 #pragma once
 
 #include "real_numbers.hpp"
-#include "resource_manager.hpp"
-#include <vector>
+#include "buffer.hpp"
 #include <ostream>
 #include <iostream>
 #include <stdexcept>
+#include <cstddef>
 
 namespace hwm {
     template <typename T>
-    class Matrix final {
+    class Matrix final : private MatrixBuf<T> {
         private:
-            int rows_ = 0, cols_ = 0, size_ = 0;
-            ResourceManager<T> numbers_;
+            using MatrixBuf<T>::ptr_;
+            using MatrixBuf<T>::size_;
 
-            void set_values(int rows, int cols) {
+            class ProxyRow final {
+                private:
+                    T* str_ptr_;
+
+                public:
+                    ProxyRow(T* str_ptr) : str_ptr_(str_ptr) {}
+
+                    T& operator[](std::size_t idx) { return str_ptr_[idx]; }
+
+                    const T& operator[](std::size_t idx) const {
+                        return str_ptr_[idx];
+                    }
+            };
+
+        private:
+            std::size_t rows_ = 0, cols_ = 0;
+
+            void set_values(std::size_t rows, std::size_t cols) {
                 rows_ = rows;
                 cols_ = cols;
-                size_ = rows * cols;
             }
 
-            int partial_pivoting(Matrix<T>& copy, int col) const {
-                int pivot = col;
-
-                for (int i = col + 1; i < rows_; ++i) {
-                    if (is_less(std::fabs(copy[pivot * rows_ + col]),
-                                std::fabs(copy[i * rows_ + col]))) {
-                        pivot = i;
-                    }
-                }
-
-                copy.swap_strings(pivot, col);
-
-                if (pivot != col) {
-                    return -1;
-                }
-
-                return 1;
-            }
-
-            T triangular_view_bareiss() const {
-                Matrix<T> copy{*this};
-                int sign = 1;
-                T prev = 1;
-
-                for (int i = 0; i < rows_ - 1; ++i) {
-
-                    if (is_zero(copy[i * cols_ + i])) {
-                        sign *= partial_pivoting(copy, i);
-                        if (is_zero(copy[i * cols_ + i])) {
-                            return 0;
-                        }
-                    }
-
-                    for (int j = i + 1; j < rows_; ++j) {
-
-                        for (int k = i + 1; k < rows_; ++k) {
-                            T numerator =
-                                (copy[j * cols_ + k]) * (copy[i * cols_ + i]) -
-                                (copy[j * cols_ + i]) * (copy[i * cols_ + k]);
-
-                            copy[j * cols_ + k] = numerator / prev;
-                        }
-
-                        copy[j * cols_ + i] = 0;
-                    }
-
-                    prev = copy[i * cols_ + i];
-                }
-
-                return sign * copy[rows_ * rows_ - 1];
-            }
-
-            T triangular_view_gauss() const {
-                Matrix<T> copy{*this};
-                int sign = 1;
-
-                for (int i = 0; i < rows_; i++) {
-
-                    sign *= partial_pivoting(copy, i);
-
-                    if (is_zero(copy[i * rows_ + i])) {
-                        return 0;
-                    }
-
-                    for (int j = i + 1; j < rows_; j++) {
-
-                        T coeff = copy[j * cols_ + i] / copy[i * cols_ + i];
-
-                        for (int k = 0; k < cols_; k++) {
-                            copy[j * cols_ + k] -= copy[i * cols_ + k] * coeff;
-                        }
-                    }
-                }
-
-                return sign * copy.trace();
-            }
-
-            void is_quadratic() const {
+            void validate_quadratic() const {
                 if (rows_ != cols_) {
                     throw std::runtime_error(
                         "Determinant is defined only for square matrix.");
                 }
             }
 
-            void is_string_in_matrix(int string) const {
+            void validate_string_in_matrix(int string) const {
                 if (string < 0 || string >= rows_) {
                     throw std::out_of_range("String index out of range.");
                 }
             }
 
-            void is_correct_size(int rows, int cols) const {
+            void validate_correct_size(int rows, int cols) const {
                 if (rows <= 0 || cols <= 0) {
                     throw std::invalid_argument("Incorrect size.");
                 }
             }
 
             template <typename It>
-            void is_correct_matrix(It start, It fin) const {
-                if (std::distance(start, fin) < size_) {
+            void validate_correct_matrix(It start, It fin) const {
+                std::size_t count = 0;
+                for (auto it = start; it != fin && count < size_; ++it) {
+                    ++count;
+                }
+
+                if (count < size_) {
                     throw std::invalid_argument(
                         "Incorrect size for given matrix.");
                 }
@@ -127,106 +71,119 @@ namespace hwm {
         public:
             Matrix() = default;
 
-            Matrix(int rows, int cols, T value) {
-                is_correct_size(rows, cols);
+            Matrix(int rows, int cols, T value) : MatrixBuf<T>(rows * cols) {
+                validate_correct_size(rows, cols);
 
                 set_values(rows, cols);
-                numbers_ = ResourceManager<T>{size_};
 
-                for (int i = 0; i < size_; i++) {
-                    numbers_[i] = value;
+                for (std::size_t i = 0; i < rows_; ++i) {
+                    for (std::size_t j = 0; j < cols_; ++j) {
+                        (*this)[i][j] = value;
+                    }
                 }
             }
 
             template <typename It>
-            Matrix(int rows, int cols, It start, It fin) {
-                is_correct_size(rows, cols);
-                is_correct_matrix(start, fin);
+            Matrix(int rows, int cols, It start, It fin)
+                : MatrixBuf<T>(rows * cols) {
+                validate_correct_size(rows, cols);
+                validate_correct_matrix(start, fin);
 
                 set_values(rows, cols);
-                numbers_ = ResourceManager<T>{size_};
 
-                for (int i = 0; i < size_; i++) {
-                    numbers_[i] = *start;
-                    start++;
+                for (std::size_t i = 0; i < rows_; i++) {
+                    for (std::size_t j = 0; j < cols_; j++) {
+                        (*this)[i][j] = *start;
+                        start++;
+                    }
                 }
             }
 
-            template <typename U>
-            Matrix(const Matrix<U>& other) {
-                numbers_ = other.get_numbers();
-                set_values(other.get_rows(), other.get_cols());
+            Matrix(const Matrix& other) : MatrixBuf<T>(other.size_) {
+                for (std::size_t i = 0; i < size_; ++i) {
+                    construct(ptr_ + i, *(other.ptr_ + i));
+                }
+
+                set_values(other.rows_, other.cols_);
             }
 
+            Matrix(Matrix&& other) = default;
+
+            Matrix& operator=(const Matrix& other) {
+                Matrix tmp{other};
+                std::swap(*this, tmp);
+
+                return *this;
+            }
+
+            Matrix& operator=(Matrix&& other) = default;
+
             static Matrix<T> eye(int size) {
-                is_correct_size(size, size);
+                validate_correct_size(size, size);
 
                 Matrix<T> result{size, size, 0};
 
-                for (int i = 0; i < size * size; i += (size + 1)) {
-                    result[i] = 1;
+                for (std::size_t i = 0; i < size; ++i) {
+                    for (std::size_t j = 0; j < size; ++j) {
+                        result[i][j] = 1;
+                    }
                 }
 
                 return result;
             }
 
-            int get_rows() const { return rows_; }
+            std::size_t get_rows() const { return rows_; }
 
-            int get_cols() const { return cols_; }
-
-            int get_size() const { return size_; }
-
-            const ResourceManager<T>& get_numbers() const { return numbers_; }
+            std::size_t get_cols() const { return cols_; }
 
             T trace() const {
-                is_quadratic();
+                validate_quadratic();
 
                 T result = 1;
 
-                for (int i = 0; i < rows_; i++) {
-                    result *= numbers_[i * rows_ + i];
+                for (std::size_t i = 0; i < rows_; i++) {
+                    result *= (*this)[i][i];
                 }
 
                 return result;
             }
 
             void swap_strings(int string1, int string2) {
-                is_string_in_matrix(string1);
-                is_string_in_matrix(string2);
+                validate_string_in_matrix(string1);
+                validate_string_in_matrix(string2);
 
                 if (string1 == string2)
                     return;
 
-                for (int i = 0; i < cols_; i++) {
-                    std::swap(numbers_[string1 * rows_ + i],
-                              numbers_[string2 * rows_ + i]);
+                for (std::size_t i = 0; i < cols_; ++i) {
+                    std::swap((*this)[string1][i], (*this)[string2][i]);
                 }
             }
 
             void mul_row(int string, T number) {
-                is_string_in_matrix(string);
+                validate_string_in_matrix(string);
 
-                for (int i = 0; i < cols_; i++) {
-                    numbers_[string * cols_ + i] *= number;
+                for (std::size_t i = 0; i < cols_; ++i) {
+                    (*this)[string][i] *= number;
                 }
             }
 
             void div_row(int string, T number) {
-                is_string_in_matrix(string);
+                validate_string_in_matrix(string);
 
-                for (int i = 0; i < cols_; i++) {
-                    numbers_[string * cols_ + i] /= number;
+                for (std::size_t i = 0; i < cols_; ++i) {
+                    (*this)[string][i] /= number;
                 }
             }
 
             T determinant() const {
-                is_quadratic();
+                validate_quadratic();
 
                 if constexpr (std::is_integral_v<T>) {
-                    return triangular_view_bareiss();
+                    return triangular_view_bareiss(*this);
                 }
 
-                return triangular_view_gauss();
+                return triangular_view_gauss(*this);
             }
 
             bool is_equal(const Matrix& other) const {
@@ -234,10 +191,9 @@ namespace hwm {
                     return false;
                 }
 
-                for (int i = 0; i < rows_; i++) {
-                    for (int j = 0; j < cols_; j++) {
-                        if (!is_equal_floats(numbers_[i * cols_ + j],
-                                             other.numbers_[i * cols_ + j])) {
+                for (std::size_t i = 0; i < rows_; ++i) {
+                    for (std::size_t j = 0; j < cols_; ++j) {
+                        if ((*this)[i][j] != other[i][j]) {
                             return false;
                         }
                     }
@@ -246,15 +202,16 @@ namespace hwm {
                 return true;
             }
 
-            T& operator[](int index) { return numbers_[index]; }
-            const T& operator[](int index) const { return numbers_[index]; }
+            ProxyRow operator[](std::size_t idx) const {
+                return ProxyRow(ptr_ + idx * cols_);
+            }
     };
 
     template <typename T>
     std::ostream& operator<<(std::ostream& stream, const Matrix<T>& matrix) {
-        for (int i = 0; i < matrix.get_rows(); i++) {
-            for (int j = 0; j < matrix.get_cols(); j++) {
-                stream << matrix[i * matrix.get_cols() + j] << " ";
+        for (std::size_t i = 0, rows = matrix.get_rows(); i < rows; ++i) {
+            for (std::size_t j = 0, cols = matrix.get_cols(); j < cols; ++j) {
+                stream << matrix[i][j] << " ";
             }
 
             stream << std::endl;
@@ -266,5 +223,91 @@ namespace hwm {
     template <typename T>
     bool operator==(const Matrix<T>& matrix1, const Matrix<T>& matrix2) {
         return matrix1.is_equal(matrix2);
+    }
+
+    template <typename T>
+    int partial_pivoting(Matrix<T>& mtrx, int col) {
+        int pivot = col;
+
+        auto rows = mtrx.get_rows();
+        auto cols = mtrx.get_cols();
+
+        for (int i = col + 1; i < rows; ++i) {
+            if (is_less(std::fabs(mtrx[pivot][col]),
+                        std::fabs(mtrx[i][col]))) {
+                pivot = i;
+            }
+        }
+
+        mtrx.swap_strings(pivot, col);
+
+        if (pivot != col) {
+            return -1;
+        }
+
+        return 1;
+    }
+
+    template <typename T>
+    T triangular_view_bareiss(Matrix<T> mtrx) {
+        int sign = 1;
+        T prev = 1;
+
+        auto rows = mtrx.get_rows();
+        auto cols = mtrx.get_cols();
+
+        for (int i = 0; i < rows - 1; ++i) {
+
+            if (mtrx[i][i] == 0) {
+                sign *= partial_pivoting(mtrx, i);
+                if (mtrx[i][i] == 0) {
+                    return 0;
+                }
+            }
+
+            for (int j = i + 1; j < rows; ++j) {
+
+                for (int k = i + 1; k < rows; ++k) {
+                    T numerator = (mtrx[j][k]) * (mtrx[i][i]) -
+                                  (mtrx[j][i]) * (mtrx[i][k]);
+
+                    mtrx[j][k] = numerator / prev;
+                }
+
+                mtrx[j][i] = 0;
+            }
+
+            prev = mtrx[i][i];
+        }
+
+        return sign * mtrx[rows - 1][cols - 1];
+    }
+
+    template <typename T>
+    T triangular_view_gauss(Matrix<T> mtrx) {
+        int sign = 1;
+
+        auto rows = mtrx.get_rows();
+        auto cols = mtrx.get_cols();
+
+        for (int i = 0; i < rows; i++) {
+
+            sign *= partial_pivoting(mtrx, i);
+
+            if (is_zero(mtrx[i][i])) {
+                return 0;
+            }
+
+            for (int j = i + 1; j < rows; j++) {
+
+                T coeff = mtrx[j][i] / mtrx[i][i];
+
+                for (int k = 0; k < cols; k++) {
+                    mtrx[j][k] -= mtrx[i][k] * coeff;
+                }
+            }
+        }
+
+        return sign * mtrx.trace();
     }
 }
