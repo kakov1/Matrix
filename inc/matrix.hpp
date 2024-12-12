@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstddef>
+#include <memory>
 
 namespace hwm {
     template <typename T>
@@ -56,13 +57,8 @@ namespace hwm {
             }
 
             template <typename It>
-            void validate_correct_matrix(It start, It fin) const {
-                std::size_t count = 0;
-                for (auto it = start; it != fin && count < size_; ++it) {
-                    ++count;
-                }
-
-                if (count < size_) {
+            void validate_correct_it(const It& it, const It& fin) {
+                if (it == fin) {
                     throw std::invalid_argument(
                         "Incorrect size for given matrix.");
                 }
@@ -86,13 +82,16 @@ namespace hwm {
             template <typename It>
             Matrix(int rows, int cols, It start, It fin)
                 : MatrixBuf<T>(rows * cols) {
+
                 validate_correct_size(rows, cols);
-                validate_correct_matrix(start, fin);
 
                 set_values(rows, cols);
 
                 for (std::size_t i = 0; i < rows_; i++) {
                     for (std::size_t j = 0; j < cols_; j++) {
+
+                        validate_correct_it(start, fin);
+
                         (*this)[i][j] = *start;
                         start++;
                     }
@@ -100,9 +99,8 @@ namespace hwm {
             }
 
             Matrix(const Matrix& other) : MatrixBuf<T>(other.size_) {
-                for (std::size_t i = 0; i < size_; ++i) {
-                    construct(ptr_ + i, *(other.ptr_ + i));
-                }
+                std::uninitialized_copy(other.ptr_, other.ptr_ + other.size_,
+                                        ptr_);
 
                 set_values(other.rows_, other.cols_);
             }

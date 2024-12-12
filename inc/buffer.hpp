@@ -4,23 +4,6 @@
 #include <iostream>
 
 namespace hwm {
-
-    template <typename T>
-    void construct(T* p, const T& rhs) noexcept {
-        new (p) T(rhs);
-    }
-
-    template <typename T>
-    void destroy(T* p) noexcept {
-        p->~T();
-    }
-
-    template <typename FwdIter>
-    void destroy(FwdIter first, FwdIter last) noexcept {
-        while (first != last)
-            destroy(&*first++);
-    }
-
     template <typename T>
     class MatrixBuf {
         protected:
@@ -34,8 +17,9 @@ namespace hwm {
 
             MatrixBuf(std::size_t size = 0)
                 : ptr_(size == 0 ? nullptr
-                                 : static_cast<T*>(
-                                       ::operator new(sizeof(T) * size))),
+                                 : static_cast<T*>(::operator new(
+                                       sizeof(T) * size,
+                                       std::align_val_t(alignof(T))))),
                   size_(size) {}
 
             MatrixBuf(const MatrixBuf& other) = delete;
@@ -51,7 +35,7 @@ namespace hwm {
             }
 
             ~MatrixBuf() {
-                destroy(ptr_, ptr_ + size_);
+                std::destroy(ptr_, ptr_ + size_);
                 delete ptr_;
             }
     };

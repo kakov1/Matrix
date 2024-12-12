@@ -37,7 +37,7 @@ namespace hwm {
 
     template <typename FloatType>
     bool is_equal_floats(FloatType a, FloatType b) {
-        if (std::is_integral_v<FloatType>)
+        if constexpr (std::is_integral_v<FloatType>)
             return a == b;
         else
             return std::fabs(a - b) < Accuracy<FloatType>::epsilon();
@@ -45,7 +45,7 @@ namespace hwm {
 
     template <typename FloatType>
     bool is_less(FloatType a, FloatType b) {
-        if (std::is_integral_v<FloatType>)
+        if constexpr (std::is_integral_v<FloatType>)
             return a < b;
         else
             return a - b < -Accuracy<FloatType>::epsilon();
@@ -58,7 +58,7 @@ namespace hwm {
 
     template <typename FloatType>
     bool is_zero(FloatType a) {
-        if (std::is_integral_v<FloatType>)
+        if constexpr (std::is_integral_v<FloatType>)
             return a == 0;
         else
             return std::fabs(a) < Accuracy<FloatType>::epsilon();
