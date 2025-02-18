@@ -62,6 +62,12 @@ private:
 public:
   Matrix() = default;
 
+  Matrix(int rows, int cols) : MatrixBuf<T>(rows * cols) {
+    validate_correct_size(rows, cols);
+
+    set_values(rows, cols);
+  }
+
   Matrix(int rows, int cols, T value) : MatrixBuf<T>(rows * cols) {
     validate_correct_size(rows, cols);
 
@@ -165,6 +171,21 @@ public:
     for (std::size_t i = 0; i < cols_; ++i) {
       (*this)[string][i] /= number;
     }
+  }
+
+  Matrix multiply(const Matrix &mtrx) {
+    if (cols_ != mtrx.rows_) {
+      throw std::runtime_error("Incorrect size for multiplying.");
+    }
+
+    Matrix result(rows_, mtrx.cols_);
+
+    for (std::size_t i = 0; i < rows_; ++i)
+      for (std::size_t j = 0; j < mtrx.cols_; ++j)
+        for (std::size_t k = 0; k < cols_; ++k)
+          result[i][j] += (*this)[i][k] * mtrx[k][j];
+
+    return result;
   }
 
   T determinant() const {
