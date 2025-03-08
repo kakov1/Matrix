@@ -2,7 +2,6 @@
 #include "real_numbers.hpp"
 #include <cstddef>
 #include <fstream>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
@@ -117,6 +116,6 @@ TYPED_TEST(EteTests, test_all_types) {
 }
 
 int main(int argc, char *argv[]) {
-  ::testing::InitGoogleMock(&argc, argv);
+  ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }

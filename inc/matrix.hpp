@@ -178,7 +178,7 @@ public:
       throw std::runtime_error("Incorrect size for multiplying.");
     }
 
-    Matrix result(rows_, mtrx.cols_, 0);
+    Matrix result(rows_, mtrx.cols_, 0);  
 
     for (std::size_t i = 0; i < rows_; ++i)
       for (std::size_t j = 0; j < mtrx.cols_; ++j)
